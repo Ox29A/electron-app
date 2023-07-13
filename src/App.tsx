@@ -3,9 +3,6 @@ import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
   CardTitle,
 } from "./components/ui/card.tsx";
 import {
@@ -23,7 +20,18 @@ import { Save } from "lucide-react";
 function App() {
   const [maps, setMaps] = useState<Map[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [config, setConfig] = useState<{ [key: string]: string }>({}); // { mapId: agentId }
+  const [localStorageConfig, setLocalStorageConfig] = useState<{
+    [key: string]: string;
+  }>({}); // { mapId: agentId }
+
+  useEffect(() => {
+    const config = localStorage.getItem("config");
+    if (config) {
+      setLocalStorageConfig(JSON.parse(config));
+    } else {
+      console.log("no config found");
+    }
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -37,36 +45,26 @@ function App() {
       });
   }, []);
 
-  // load config from json
-  useEffect(() => {
-    // read config from json
-    fetch("/config.json")
-      .then((res) => res.json())
-      .then((data) => {
-        setConfig(data);
-        console.log("config", data);
-      });
-  }, []);
-
   return (
     <>
       <div className={"container mx-auto py-5"}>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {maps.map((map) => (
             <Card key={map.uuid}>
-              <CardHeader className={"flex justify-between items-center"}>
-                <CardTitle>{map.displayName}</CardTitle>
-                <img src={map.splash} alt={map.displayName} />
-              </CardHeader>
-
-              <CardContent className={"flex justify-between items-center"}>
+              <CardContent className={"flex justify-between items-center p-5"}>
+                <CardTitle className={"w-full"}>{map.displayName}</CardTitle>
                 <Select
                   onValueChange={(value) => {
-                    setConfig({ ...config, [map.uuid]: value });
+                    setLocalStorageConfig({
+                      ...localStorageConfig,
+                      [map.uuid]: value,
+                    });
                   }}
-                  value={config[map.uuid]}
+                  value={localStorageConfig[map.uuid]}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className={"flex items-center justify-between"}
+                  >
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>
                   <SelectContent>
@@ -86,9 +84,9 @@ function App() {
                 </Select>
               </CardContent>
 
-              <CardFooter>
-                <CardDescription>{map.coordinates}</CardDescription>
-              </CardFooter>
+              {/*<CardFooter>*/}
+              {/*  <CardDescription>{map.coordinates}</CardDescription>*/}
+              {/*</CardFooter>*/}
             </Card>
           ))}
         </div>
@@ -98,7 +96,10 @@ function App() {
             variant="outline"
             className={"mr-2"}
             onClick={() => {
-              // sendMessage();
+              localStorage.setItem(
+                "config",
+                JSON.stringify(localStorageConfig),
+              );
             }}
           >
             <Save className={"w-6 h-6 mr-2"} />
@@ -107,14 +108,19 @@ function App() {
           <Button
             variant="outline"
             onClick={() => {
-              fetch("/config.json")
-                .then((res) => res.json())
-                .then((data) => {
-                  setConfig(data);
-                });
+              console.log("Load local storage");
             }}
           >
             Load
+          </Button>
+          <Button
+            variant="outline"
+            className={"ml-2"}
+            onClick={() => {
+              setLocalStorageConfig({});
+            }}
+          >
+            Reset
           </Button>
         </div>
       </div>
